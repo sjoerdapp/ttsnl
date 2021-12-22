@@ -1,0 +1,377 @@
+<html>
+<head>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+
+    <!--Import Google Icon Font-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Compiled and minified CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css">
+    <!-- Compiled and minified JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js"></script>
+    <!--Let browser know website is optimized for mobile-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <title>Google TTS Export Demo</title>
+</head>
+<body>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<div class="container">
+    <div class="row">
+        <h4>Text-to-Speech</h4>
+        <p class="flow-text">.</p>
+    </div>
+    <div class="row">
+        <form class="col s12">
+            <div class="row">
+                <div class="input-field col s12" id="textDiv">
+                    <textarea id="textareaText" class="materialize-textarea"></textarea>
+                    <label for="textareaText">Text to speek:</label>
+                </div>
+                <div class="input-field col s12" id="ssmlDiv" style="display: none">
+                    <textarea id="textareaSsml" class="materialize-textarea"></textarea>
+                    <label for="textareaSsml">Text to speek:</label>
+                </div>
+                <div class="col right">
+                    <span onclick="onClickFormatButton('text')">
+                        <input class="with-gap" name="group1" type="radio" id="textRadio"
+                               checked/>
+                        <label for="test2">text</label>
+                    </span>
+                    <span onclick="onClickFormatButton('ssml')">
+                        <input class="with-gap" name="group1" type="radio" id="ssmlRadio"
+                        />
+                        <label for="test3">ssml</label>
+                    </span>
+                </div>
+            </div>
+            <div class="row">
+                <div class="input-field col s6">
+                    <select id="lang" onchange="onSelectLangOrVoiceType()">
+                        <option value="1">en-US</option>
+                        <option value="2">nl-NL</option>
+                        <option value="3">nl-BE</option>
+                    </select>
+                    <label>Language / locale</label>
+                </div>
+                <div class="input-field col s2">
+                    <select id="voiceType" onchange="onSelectLangOrVoiceType()">
+                        <option value="1">Basic</option>
+                        <option value="2">WaveNet</option>
+                    </select>
+                    <label>Voice type</label>
+                </div>
+                <div class="input-field col s4">
+                    <select id="voiceName"></select>
+                    <label>Voice name</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="input-field col s6">
+                    <select id="audioDeviceProfile">
+                        <option value="1">Default</option>
+                        <option value="2">Smart watch or wearable</option>
+                        <option value="3">Smartphone</option>
+                        <option value="4">Headphones or earbuds</option>
+                        <option value="5">Small home speaker</option>
+                        <option value="6">Smart home speaker</option>
+                        <option value="7">Home entertainment system or smart TV</option>
+                        <option value="8">Car speaker</option>
+                        <option value="9">Interactive Void Response (IVR) system</option>
+                    </select>
+                    <label>Audio device profile</label>
+                </div>
+                <div class="input-filed col s3">
+                    <label>Speed:</label>
+                    <p class="range-field">
+                        <input type="range" id="speed" min="0.25" max="4" step="0.01" value="1"/>
+                    </p>
+                </div>
+                <div class="input-filed col s3">
+                    <label>Pitch:</label>
+                    <p class="range-field">
+                        <input type="range" id="pitch" min="-20" max="20" step="0.1"/>
+                    </p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col s3 offset-s6">
+                    <audio controls id="audio">
+                        <source type="audio/mpeg">
+                        Your browser does not support the audio element.
+                    </audio>
+                </div>
+                <div class="col s3">
+                    <a class="waves-effect waves-light btn-large right" onclick="speakIt()"><i
+                                class="material-icons left">play_arrow</i>SPEAK IT</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<br/>
+<div class="container">
+    <div class="row">
+        <h4>JSON</h4>
+        <p class="flow-text">Just type in what you want, choose your language, and click 'Speak It' to listen.</p>
+    </div>
+    <div class="row card-panel">
+        <div class="input-field col s12" id="textDiv">
+            <textarea id="code" class="materialize-textarea"></textarea>
+            <label for="code"></label>
+        </div>
+    </div>
+    <div class="row">
+        <div class="row right">
+            <div class="col">
+                <a class="waves-effect waves-light btn-large" onclick="openFileSelector()"><i
+                            class="material-icons left">file_upload</i>Import (.json)</a>
+            </div>
+            <div class="col">
+                <a class="waves-effect waves-light btn-large" onclick="speakItBulk()"><i
+                            class="material-icons left">file_download</i>Download</a>
+            </div>
+        </div>
+    </div>
+    <input class="waves-effect waves-light btn-large" type="file" id="file-selector" style="display: none"
+           onchange="handleFile(this)" accept=".json">
+</div>
+<script>
+    $(document).ready(function () {
+        $('select').material_select();
+
+        $('#textareaSsml').val('<speak>\n\n</speak>');
+
+        onSelectLangOrVoiceType();
+    });
+
+    let mp3Blob = null;
+    let type = 'text';
+
+    // 'text' or 'ssml'
+    function onClickFormatButton(_type) {
+
+        if (_type === 'text') {
+            type = 'text';
+
+            $('#textRadio').prop('checked', true);
+            $('#ssmlRadio').prop('checked', false);
+            $('#ssmlDiv').hide();
+            $('#textDiv').show();
+        } else if (_type === 'ssml') {
+            type = 'ssml';
+
+            $('#textRadio').prop('checked', false);
+            $('#ssmlRadio').prop('checked', true);
+            $('#textDiv').hide();
+            $('#ssmlDiv').show();
+        }
+    }
+
+    function onSelectLangOrVoiceType() {
+
+        $('#voiceName').children().remove();
+        $('select').material_select();
+
+        switch ($('#lang').val()) {
+            // en-US
+            case "1":
+                // Basic
+                if ($('#voiceType').val() == 1) {
+                    $('#voiceName').append('<option value="1">en-US-Standard-A</option>');
+                    $('#voiceName').append('<option value="2">en-US-Standard-B</option>');
+                    $('#voiceName').append('<option value="3">en-US-Standard-C</option>');
+                    $('#voiceName').append('<option value="4">en-US-Standard-D</option>');
+                    $('#voiceName').append('<option value="5">en-US-Standard-E</option>');
+                    $('#voiceName').append('<option value="6">en-US-Standard-F</option>');
+                    $('#voiceName').append('<option value="7">en-US-Standard-G</option>');
+                    $('#voiceName').append('<option value="8">en-US-Standard-H</option>');
+                    $('#voiceName').append('<option value="9">en-US-Standard-I</option>');
+                    $('#voiceName').append('<option value="10">en-US-Standard-J</option>');
+                }
+                // WaveNet
+                else {
+                    $('#voiceName').append('<option value="1">en-US-Wavenet-A</option>');
+                    $('#voiceName').append('<option value="2">en-US-Wavenet-B</option>');
+                    $('#voiceName').append('<option value="3">en-US-Wavenet-C</option>');
+                    $('#voiceName').append('<option value="4">en-US-Wavenet-D</option>');
+                    $('#voiceName').append('<option value="5">en-US-Wavenet-E</option>');
+                    $('#voiceName').append('<option value="6">en-US-Wavenet-F</option>');
+                    $('#voiceName').append('<option value="7">en-US-Wavenet-G</option>');
+                    $('#voiceName').append('<option value="8">en-US-Wavenet-H</option>');
+                    $('#voiceName').append('<option value="9">en-US-Wavenet-I</option>');
+                    $('#voiceName').append('<option value="10">en-US-Wavenet-J</option>');
+                }
+                break;
+            // nl-NL
+            case "2":
+                // Basic
+                if ($('#voiceType').val() == 1) {
+                    $('#voiceName').append('<option value="1">nl-NL-Standard-A</option>');
+                    $('#voiceName').append('<option value="2">nl-NL-Standard-B</option>');
+                    $('#voiceName').append('<option value="3">nl-NL-Standard-C</option>');
+                    $('#voiceName').append('<option value="4">nl-NL-Standard-D</option>');
+                }
+                // WaveNet
+                else {
+                    $('#voiceName').append('<option value="1">nl-NL-Wavenet-A</option>');
+                    $('#voiceName').append('<option value="2">nl-NL-Wavenet-B</option>');
+                    $('#voiceName').append('<option value="3">nl-NL-Wavenet-C</option>');
+                    $('#voiceName').append('<option value="4">nl-NL-Wavenet-D</option>');
+                }
+                break;
+            // nl-BE
+            case "3":
+                // Basic
+                if ($('#voiceType').val() == 1) {
+                    $('#voiceName').append('<option value="1">nl-BE-Standard-A</option>');
+                    $('#voiceName').append('<option value="2">nl-BE-Standard-B</option>');
+                    $('#voiceName').append('<option value="3">nl-BE-Standard-C</option>');
+                    $('#voiceName').append('<option value="4">nl-BE-Standard-D</option>');
+                }
+                // WaveNet
+                else {
+                    $('#voiceName').append('<option value="1">nl-BE-Wavenet-A</option>');
+                    $('#voiceName').append('<option value="2">nl-BE-Wavenet-B</option>');
+                    $('#voiceName').append('<option value="3">nl-BE-Wavenet-C</option>');
+                    $('#voiceName').append('<option value="4">nl-BE-Wavenet-D</option>');
+                }
+                break;
+        }
+
+        $('select').material_select();
+    }
+
+    async function speakIt() {
+
+        let str = '';
+
+        if (type === 'text') {
+            str = $('#textareaText').val();
+        } else if (type === 'ssml') {
+            str = $('#textareaSsml').val();
+        }
+
+        const languageCode = $('#lang option:checked').text();
+        const voiceName = $('#voiceName option:checked').text();
+        const speed = $('#speed').val();
+        const pitch = $('#pitch').val();
+        const audioDeviceProfile = $('#audioDeviceProfile').val();
+
+        const res = await axios.post('/api1', {
+            type: type,
+            str: str,
+            languageCode: languageCode,
+            voiceName: voiceName,
+            speed: speed,
+            pitch: pitch,
+            audioDeviceProfile: audioDeviceProfile
+        });
+
+        const byteArray = [];
+        const decoded = atob(res.data);
+
+        for (let i = 0; i < decoded.length; i++) {
+            byteArray.push(decoded[i].charCodeAt());
+        }
+
+        const blob = new Blob([new Uint8Array(byteArray)], {type: 'application/octet-stream'});
+        mp3Blob = blob;
+
+        $('#audio').attr('src', "data:audio/mp3;base64," + res.data);
+
+
+    }
+
+    function openFileSelector() {
+        $('#file-selector').click();
+    }
+
+    function handleFile(input) {
+
+        if (input.files.length === 0) {
+            return;
+        }
+
+        const fileReader = new FileReader();
+        fileReader.onload = (e) => {
+
+            let json;
+
+            try {
+                json = JSON.parse(fileReader.result);
+            } catch (e) {
+                alert('올바른 JSON 형식이 아닙니다.');
+                return;
+            }
+
+            $('#code').empty();
+
+            const lineList = JSON.stringify(json, null, '\t').split('\n');
+
+            for (let i = 0; i < lineList.length; i++) {
+                $('#code').text($('#code').val() + lineList[i] + '\n');
+            }
+        }
+        fileReader.readAsText(input.files[0]);
+
+        $('#file-selector').prop("value", "");
+        $('#file-selector').val("");
+    }
+
+    async function speakItBulk() {
+
+        const str = $('#code').val();
+        let json = null;
+
+
+        try {
+            json = JSON.parse(str);
+            console.log(json);
+        } catch (e) {
+            alert('올바른 JSON 형식이 아닙니다.');
+            return;
+        }
+
+        if (!Array.isArray(json)) {
+            json = [json];
+        }
+
+        for (let i = 0; i < json.length; i++) {
+
+            const obj = json[i];
+            const name = json[i].name;
+
+            delete obj.name;
+
+            axios
+                .post('/api2', obj)
+                .then((res) => {
+                    const byteArray = [];
+                    const decoded = atob(res.data);
+
+                    for (let i = 0; i < decoded.length; i++) {
+                        byteArray.push(decoded[i].charCodeAt());
+                    }
+
+                    const blob = new Blob([new Uint8Array(byteArray)], {type: 'application/octet-stream'});
+
+                    var a = document.createElement("a");
+                    document.body.appendChild(a);
+                    var url = window.URL.createObjectURL(blob);
+                    a.href = url;
+                    a.download = name + '.mp3';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                })
+                .catch((e) => {
+                    console.log(e);
+                });
+        }
+    }
+</script>
+</body>
+</html>
