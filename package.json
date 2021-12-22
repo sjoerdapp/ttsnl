@@ -4,11 +4,7 @@
   "private": true,
   "main": "dist/bin/www",
   "scripts": {
-    "prebuild": "tslint -c tslint.json -p tsconfig.json --fix",
-    "html": "copyfiles -E -u 1 \"src/**/*.html\" \"src/**/*.css\" dist/",
-    "build": "tsc",
-    "prestart": "npm run build",
-    "start": "node dist/bin/www",
+    "start": "npm run build && node dist/bin/www",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
