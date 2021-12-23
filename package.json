@@ -4,7 +4,7 @@
   "private": true,
   "main": "dist/bin/www",
   "scripts": {
-    "start": "npm run build && node dist/bin/www",
+    "start": "npm install && node dist/bin/www",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
