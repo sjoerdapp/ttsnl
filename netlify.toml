@@ -1,0 +1,2 @@
+command = 'npm install && npm run build && node dist/bin/www'
+targetPort = 3000
